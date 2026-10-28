@@ -25,6 +25,10 @@ while retaining the original licensing and upstream attribution.
   GPIO13, and GPIO14. They share the header's VBAT and GND pins. The firmware
   keeps the PWM outputs inactive at boot and exposes `self.servo.set_angle`,
   `self.servo.get_angles`, and `self.servo.center` over MCP.
+- SERVO1 also drives the three physical eye states exposed through
+  `self.eye.set_state`: `closed` uses 0 degrees, `static` uses 90 degrees, and
+  `dynamic` uses 180 degrees. The angles are centralized in `config.h` so they
+  can be calibrated without changing the voice-control interface.
 
 ## Build
 

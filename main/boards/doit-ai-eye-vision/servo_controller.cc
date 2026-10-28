@@ -6,6 +6,7 @@
 #include <esp_err.h>
 #include <esp_log.h>
 
+#include "config.h"
 #include "mcp_server.h"
 
 namespace {
@@ -108,6 +109,9 @@ bool ServoController::SetPulseWidthUs(int servo_number,
                      (kMaxAngle - kMinAngle) +
                  (kMaxPulseWidthUs - kMinPulseWidthUs) / 2) /
                 (kMaxPulseWidthUs - kMinPulseWidthUs));
+        if (servo_number == EYE_SERVO_NUMBER) {
+            eye_state_ = "custom";
+        }
     }
     xSemaphoreGive(mutex_);
     return success;
@@ -122,18 +126,69 @@ bool ServoController::SetAngle(int servo_number, int angle_degrees) {
         return false;
     }
 
+    const bool success = SetAngleUnlocked(servo_number - 1, angle_degrees);
+    if (success && servo_number == EYE_SERVO_NUMBER) {
+        eye_state_ = "custom";
+    }
+    xSemaphoreGive(mutex_);
+    return success;
+}
+
+bool ServoController::SetAngleUnlocked(int servo_index, int angle_degrees) {
+    if (angle_degrees < kMinAngle || angle_degrees > kMaxAngle) {
+        return false;
+    }
     const uint32_t pulse_width_us =
         kMinPulseWidthUs +
         static_cast<uint32_t>(angle_degrees) *
             (kMaxPulseWidthUs - kMinPulseWidthUs) /
             (kMaxAngle - kMinAngle);
-    const bool success =
-        SetPulseWidthUnlocked(servo_number - 1, pulse_width_us);
+    const bool success = SetPulseWidthUnlocked(servo_index, pulse_width_us);
     if (success) {
-        angles_[servo_number - 1] = angle_degrees;
+        angles_[servo_index] = angle_degrees;
+    }
+    return success;
+}
+
+bool ServoController::SetEyeState(const std::string& state) {
+    int angle;
+    std::string canonical_state;
+    if (state == "closed" || state == "闭眼") {
+        angle = EYE_CLOSED_ANGLE;
+        canonical_state = "closed";
+    } else if (state == "static" || state == "静态眼" ||
+               state == "mode1" || state == "模式1") {
+        angle = EYE_STATIC_ANGLE;
+        canonical_state = "static";
+    } else if (state == "dynamic" || state == "动态眼" ||
+               state == "mode2" || state == "模式2") {
+        angle = EYE_DYNAMIC_ANGLE;
+        canonical_state = "dynamic";
+    } else {
+        return false;
+    }
+
+    if (xSemaphoreTake(mutex_, portMAX_DELAY) != pdTRUE) {
+        return false;
+    }
+    const bool success =
+        SetAngleUnlocked(EYE_SERVO_NUMBER - 1, angle);
+    if (success) {
+        eye_state_ = canonical_state;
+        ESP_LOGI(TAG, "Eye state set to %s (%d degrees)",
+                 canonical_state.c_str(), angle);
     }
     xSemaphoreGive(mutex_);
     return success;
+}
+
+std::string ServoController::GetEyeState() const {
+    if (xSemaphoreTake(mutex_, portMAX_DELAY) != pdTRUE) {
+        return "unknown";
+    }
+    const std::string state = eye_state_;
+    xSemaphoreGive(mutex_);
+    return state;
 }
 
 void ServoController::RegisterMcpTools() {
@@ -178,5 +233,33 @@ void ServoController::RegisterMcpTools() {
                 success = SetAngle(servo, 90) && success;
             }
             return success;
+        });
+
+    mcp_server.AddTool(
+        "self.eye.set_state",
+        "Set the physical eye state with the dedicated eye servo. "
+        "Use 'closed' when the user says close eyes, 'static' when the "
+        "user asks for the static eyes, and 'dynamic' when the user asks "
+        "for dynamic eyes. Chinese aliases are also accepted.",
+        PropertyList({
+            Property("state", kPropertyTypeString, "static"),
+        }),
+        [this](const PropertyList& properties) -> ReturnValue {
+            return SetEyeState(properties["state"].value<std::string>());
+        });
+
+    mcp_server.AddTool(
+        "self.eye.get_state",
+        "Get the current physical eye state: closed, static, dynamic, "
+        "custom, or unset.",
+        PropertyList(),
+        [this](const PropertyList& properties) -> ReturnValue {
+            (void)properties;
+            char json[128];
+            snprintf(json, sizeof(json),
+                     "{\"state\":\"%s\",\"servo\":%d,\"angle\":%d}",
+                     GetEyeState().c_str(), EYE_SERVO_NUMBER,
+                     GetAngle(EYE_SERVO_NUMBER));
+            return std::string(json);
         });
 }

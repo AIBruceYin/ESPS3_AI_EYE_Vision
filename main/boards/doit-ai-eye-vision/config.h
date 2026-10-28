@@ -13,6 +13,12 @@
 #define SERVO2_GPIO             GPIO_NUM_12
 #define SERVO3_GPIO             GPIO_NUM_13
 #define SERVO4_GPIO             GPIO_NUM_14
+
+/* One servo selects the physical eye state. */
+#define EYE_SERVO_NUMBER        1
+#define EYE_CLOSED_ANGLE        0
+#define EYE_STATIC_ANGLE        90
+#define EYE_DYNAMIC_ANGLE       180
 /*==========小智+魔眼============ */
 /* LCD size */
 #define GC9A01_LCD_H_RES   (240)

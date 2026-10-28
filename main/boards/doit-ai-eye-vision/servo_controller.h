@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdint>
+#include <string>
 
 #include <driver/gpio.h>
 #include <driver/ledc.h>
@@ -16,7 +17,9 @@ public:
 
     bool SetAngle(int servo_number, int angle_degrees);
     bool SetPulseWidthUs(int servo_number, uint32_t pulse_width_us);
+    bool SetEyeState(const std::string& state);
     int GetAngle(int servo_number) const;
+    std::string GetEyeState() const;
 
 private:
     static constexpr int kServoCount = 4;
@@ -33,9 +36,11 @@ private:
     std::array<gpio_num_t, kServoCount> pins_;
     std::array<ledc_channel_t, kServoCount> channels_;
     std::array<int, kServoCount> angles_;
+    std::string eye_state_ = "unset";
     SemaphoreHandle_t mutex_ = nullptr;
 
     void RegisterMcpTools();
+    bool SetAngleUnlocked(int servo_index, int angle_degrees);
     bool SetPulseWidthUnlocked(int servo_index, uint32_t pulse_width_us);
 };
 
