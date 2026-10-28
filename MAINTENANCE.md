@@ -21,6 +21,10 @@ while retaining the original licensing and upstream attribution.
 - Idle animation refreshes only the iris area instead of repeatedly sending
   complete frames. This avoids the horizontal tearing visible with full-frame
   updates.
+- The first expansion header exposes four servo PWM outputs on GPIO11, GPIO12,
+  GPIO13, and GPIO14. They share the header's VBAT and GND pins. The firmware
+  keeps the PWM outputs inactive at boot and exposes `self.servo.set_angle`,
+  `self.servo.get_angles`, and `self.servo.center` over MCP.
 
 ## Build
 

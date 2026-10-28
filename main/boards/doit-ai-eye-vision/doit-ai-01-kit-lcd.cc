@@ -23,6 +23,7 @@
 
 #include "display/eye_display.h"
 #include "esp32_camera.h"
+#include "servo_controller.h"
 #include <vector>
 
 #define TAG "CustomBoard"
@@ -38,6 +39,7 @@ private:
     VbAduioCodec audio_codec;
     LcdDisplay* display_;
     Esp32Camera* camera_;
+    ServoController servo_controller_;
 
     /* LCD IO and panel */
    esp_lcd_panel_io_handle_t lcd_io1 = NULL;
@@ -280,7 +282,15 @@ private:
         camera_ = new Esp32Camera(config);
     }
 public:
-    CustomBoard() : boot_button_(BOOT_BUTTON_GPIO), audio_codec(CODEC_TX_GPIO, CODEC_RX_GPIO){          
+    CustomBoard()
+        : boot_button_(BOOT_BUTTON_GPIO),
+          audio_codec(CODEC_TX_GPIO, CODEC_RX_GPIO),
+          servo_controller_({
+              SERVO1_GPIO,
+              SERVO2_GPIO,
+              SERVO3_GPIO,
+              SERVO4_GPIO,
+          }) {
         InitializeButtons();
         InitializeIot();
         lcd_mutex_init();

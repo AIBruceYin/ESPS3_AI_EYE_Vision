@@ -7,6 +7,12 @@
 
 #define CODEC_TX_GPIO           GPIO_NUM_45
 #define CODEC_RX_GPIO           GPIO_NUM_48
+
+/* Servo outputs: first 1x6 expansion header */
+#define SERVO1_GPIO             GPIO_NUM_11
+#define SERVO2_GPIO             GPIO_NUM_12
+#define SERVO3_GPIO             GPIO_NUM_13
+#define SERVO4_GPIO             GPIO_NUM_14
 /*==========小智+魔眼============ */
 /* LCD size */
 #define GC9A01_LCD_H_RES   (240)
